@@ -85,6 +85,8 @@ private:
 
   bool goalOnBlacklist(const geometry_msgs::Point& goal);
 
+  bool goalBehind(const geometry_msgs::Point& goal);
+
   ros::NodeHandle private_nh_;
   ros::NodeHandle relative_nh_;
   ros::Publisher marker_array_publisher_;

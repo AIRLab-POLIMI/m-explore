@@ -176,6 +176,20 @@ void Explore::visualizeFrontiers(
   marker_array_publisher_.publish(markers_msg);
 }
 
+bool Explore::goalBehind(const geometry_msgs::Point& goal) {
+    geometry_msgs::PointStamped ps_in, ps_out;
+    ps_in.point = goal;
+    ps_in.header.stamp = ros::Time::now() - ros::Duration(0.5);
+    ps_in.header.frame_id = costmap_client_.getGlobalFrameID();
+    tf_listener_.transformPoint(costmap_client_.getBaseFrameID(), ps_in, ps_out);
+
+    if(ps_out.point.x < 0.0) {
+        return true;
+    }
+
+    return false;
+}
+
 void Explore::makePlan()
 {
   // find frontiers
@@ -201,11 +215,18 @@ void Explore::makePlan()
   auto frontier =
       std::find_if_not(frontiers.begin(), frontiers.end(),
                        [this](const frontier_exploration::Frontier& f) {
-                         return goalOnBlacklist(f.centroid);
+                         return goalOnBlacklist(f.centroid) || goalBehind(f.centroid);
                        });
   if (frontier == frontiers.end()) {
-    stop();
-    return;
+      frontier =
+              std::find_if_not(frontiers.begin(), frontiers.end(),
+                               [this](const frontier_exploration::Frontier& f) {
+                                   return goalOnBlacklist(f.centroid);
+                               });
+      if (frontier == frontiers.end()) {
+          stop();
+          return;
+      }
   }
   geometry_msgs::Point target_position = frontier->centroid;
 
